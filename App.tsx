@@ -6,13 +6,15 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { WebView } from "react-native-webview";
 import * as Notifications from "expo-notifications";
+import type { NotificationTriggerInput } from "expo-notifications";
 import { useVideoPlayer, VideoView } from "expo-video";
 // Configure notification handler so notifications show when app is foregrounded
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -35,15 +37,21 @@ function WebViewScreen({ navigation }: any) {
   }, []);
 
   const scheduleNotification = async (
-    title: string,
-    body: string,
-    seconds: number
-  ) => {
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body },
-      trigger: { seconds },
-    });
+  title: string,
+  body: string,
+  seconds: number
+) => {
+  const trigger: Notifications.TimeIntervalTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds,
+    repeats: false,
   };
+
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body },
+    trigger,
+  });
+};
 
   return (
     <View style={styles.container}>
@@ -53,11 +61,10 @@ function WebViewScreen({ navigation }: any) {
           style={styles.webview}
           onLoadEnd={() => {
             console.log("WebView content loaded");
-            scheduleNotification('Welcome!', 'WebView content has loaded', 2);
+            scheduleNotification("Welcome!", "WebView content has loaded", 2);
           }}
           // Inject two buttons into the loaded webpage which post messages to the React Native app
-          injectedJavaScript={
-            `(function() {
+          injectedJavaScript={`(function() {
               function ensureButtons(){
                 if (document.getElementById('rn-notify-buttons')) return;
                 const container = document.createElement('div');
@@ -91,20 +98,27 @@ function WebViewScreen({ navigation }: any) {
               } else {
                 ensureButtons();
               }
-            })(); true;`
-          }
+            })(); true;`}
           onMessage={(event) => {
             try {
               const data = JSON.parse(event.nativeEvent.data);
-              if (data && data.type === 'notify') {
-                if (data.which === 'quick') { 
-                  scheduleNotification('Quick alert', 'This fired after ~2s', 2);
-                } else if (data.which === 'later') {
-                  scheduleNotification('Later alert', 'This fired after ~4s', 4);
+              if (data && data.type === "notify") {
+                if (data.which === "quick") {
+                  scheduleNotification(
+                    "Quick alert",
+                    "This fired after ~2s",
+                    2
+                  );
+                } else if (data.which === "later") {
+                  scheduleNotification(
+                    "Later alert",
+                    "This fired after ~4s",
+                    4
+                  );
                 }
               }
             } catch (e) {
-              console.warn('Failed to parse message from WebView', e);
+              console.warn("Failed to parse message from WebView", e);
             }
           }}
         />
@@ -128,8 +142,6 @@ function VideoScreen({ navigation }: any) {
     "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
   );
 
-  // Keep a small status state for UI/debug (optional)
-  const [playerStatus, setPlayerStatus] = useState<any>({});
 
   useEffect(() => {
     // Enable looping on the player when it's available
@@ -151,67 +163,11 @@ function VideoScreen({ navigation }: any) {
         player={player}
         nativeControls={true}
         contentFit="contain"
-        onFocus={()=>{
-          console.log("VideoView focused");
+        onFirstFrameRender={() => {
+          console.log("VideoView first frame rendered");
           player.play();
         }}
-        onFirstFrameRender={()=>{
-          console.log("VideoView first frame rendered");
-           player.play();
-        } 
-        }
-        // playsInline={true}
-        
       />
-
-      {/* <View style={styles.buttonsRow}>
-        <View style={styles.buttonWrap}>
-          <Button
-            title="Play"
-            onPress={() => {
-              try {
-                player.play();
-              } catch (e) {
-                console.warn(e);
-              }
-            }}
-          />
-        </View>
-        <View style={styles.buttonWrap}>
-          <Button
-            title="Pause"
-            onPress={() => {
-              try {
-                player.pause();
-              } catch (e) {
-                console.warn(e);
-              }
-            }}
-          />
-        </View>
-        <View style={styles.buttonWrap}>
-          <Button
-            title="Fullscreen"
-            onPress={async () => {
-              try {
-                if (videoRef.current && videoRef.current.enterFullscreen) {
-                  await videoRef.current.enterFullscreen();
-                } else if (
-                  videoRef.current &&
-                  videoRef.current.nativeRef &&
-                  videoRef.current.nativeRef.current &&
-                  videoRef.current.nativeRef.current.requestFullscreen
-                ) {
-                  // fallback for web native element
-                  await videoRef.current.nativeRef.current.requestFullscreen();
-                }
-              } catch (e) {
-                console.warn("Fullscreen failed", e);
-              }
-            }}
-          />
-        </View>
-      </View> */}
 
       <View style={styles.navButton}>
         <Button title="Back to WebView" onPress={() => navigation.goBack()} />
@@ -255,7 +211,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   navButton: {
-    marginTop:20,
+    marginTop: 20,
     paddingHorizontal: 12,
     paddingBottom: 16,
   },
