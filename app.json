@@ -28,12 +28,17 @@
     },
     "plugins": [
       [
-      "expo-video",
+        "expo-video",
         {
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1332364e-84f8-4d03-87a7-bdc527466e96"
+      }
+    }
   }
 }
